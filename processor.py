@@ -17,12 +17,12 @@ from typing import Callable, Optional
 MODELS = {
     "realistic": {
         "name": "Real-ESRGAN",
-        "binary": "/content/realesrgan-ncnn-vulkan",
+        "binary": "/content/realesrgan-ncnn-vulkan/realesrgan-ncnn-vulkan",
         "model_name": "realesrgan-x4plus",
     },
     "anime": {
         "name": "Real-CUGAN",
-        "binary": "/content/realcugan-ncnn-vulkan",
+        "binary": "/content/realcugan-ncnn-vulkan/realcugan-ncnn-vulkan",
         "model_name": "models-pro",
     },
 }
