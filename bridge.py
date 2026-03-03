@@ -141,6 +141,7 @@ app = FastAPI(title="XScale Engine", version="1.0.0")
 
 class UpscaleRequest(BaseModel):
     file_name: str
+    file_id: str = ""  # Google Drive file ID (preferred over name search)
     scale_factor: float = 2.0
     model_type: str = "realistic"  # "realistic" or "anime"
 
@@ -163,7 +164,7 @@ async def start_upscale(req: UpscaleRequest):
     # Run processing in background thread
     thread = threading.Thread(
         target=_run_upscale,
-        args=(req.file_name, req.scale_factor, req.model_type),
+        args=(req.file_name, req.file_id, req.scale_factor, req.model_type),
         daemon=True,
     )
     thread.start()
@@ -190,7 +191,7 @@ async def receive_heartbeat():
 
 # ─── Processing Pipeline ─────────────────────────────────
 
-def _run_upscale(file_name: str, scale_factor: float, model_type: str):
+def _run_upscale(file_name: str, file_id: str, scale_factor: float, model_type: str):
     """
     Main processing pipeline (runs in background thread).
     1. Download video from Drive
@@ -214,9 +215,9 @@ def _run_upscale(file_name: str, scale_factor: float, model_type: str):
         os.makedirs("/content/temp_in", exist_ok=True)
         os.makedirs("/content/temp_out", exist_ok=True)
 
-        # Download from Google Drive
+        # Download from Google Drive (by file ID)
         update_firebase_status("processing", 5)
-        _download_from_drive(file_name, input_path)
+        _download_from_drive(file_id, input_path)
 
         # Run upscaling
         update_firebase_status("processing", 10)
@@ -321,17 +322,12 @@ def _find_or_create_folder(service, name: str, parent_id: str = None):
     return folder['id']
 
 
-def _download_from_drive(file_name: str, local_path: str):
-    """Download a file from Google Drive /XScale/temp_in/ via REST API."""
+def _download_from_drive(file_id: str, local_path: str):
+    """Download a file from Google Drive by file ID via REST API."""
     from googleapiclient.http import MediaIoBaseDownload
-    import io
 
-    print(f"[XScale] Downloading {file_name} from Drive...")
+    print(f"[XScale] Downloading file {file_id} from Drive...")
     service = _get_drive_service()
-
-    file_id = _find_file_in_drive(service, file_name, "temp_in")
-    if not file_id:
-        raise FileNotFoundError(f"File not found in Drive: XScale/temp_in/{file_name}")
 
     request = service.files().get_media(fileId=file_id)
     with open(local_path, 'wb') as f:
